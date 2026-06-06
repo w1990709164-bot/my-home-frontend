@@ -10,46 +10,23 @@ import {
 
 const MODELS = ['claude-sonnet-4-5', 'claude-haiku-4-5', 'deepseek-chat']
 function MessageBubble({ message: m, style: s }) {
-  console.log('MessageBubble rendered', m.role)
-  const [translation, setTranslation] = useState('')
-  const [translating, setTranslating] = useState(false)
   const [showTranslation, setShowTranslation] = useState(false)
-
-  async function handleTranslate() {
-    if (showTranslation) { setShowTranslation(false); return }
-    if (translation) { setShowTranslation(true); return }
-    setTranslating(true)
-    try {
-      const res = await fetch('https://my-home-backend-f0ct.onrender.com/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: 0,
-          message: `请把以下内容翻译成中文，只输出翻译结果，不要任何解释：\n${m.content}`,
-          model: 'deepseek-chat'
-        })
-      })
-      const data = await res.json()
-      setTranslation(data.reply)
-      setShowTranslation(true)
-    } catch (e) {
-      setTranslation('翻译失败')
-      setShowTranslation(true)
-    }
-    setTranslating(false)
-  }
+  
+  const parts = m.content.split('\n---\n')
+  const english = parts[0]
+  const chinese = parts[1]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
-      <div style={s.bubble(m.role)}>{m.content}</div>
-      {m.role === 'assistant' && (
-        <button onClick={handleTranslate} style={{ alignSelf: 'flex-start', marginTop: 4, background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 11, cursor: 'pointer', padding: '2px 4px' }}>
-          {translating ? '翻译中…' : showTranslation ? '收起' : '翻译'}
+      <div style={s.bubble(m.role)}>{english}</div>
+      {m.role === 'assistant' && chinese && (
+        <button onClick={() => setShowTranslation(!showTranslation)} style={{ alignSelf: 'flex-start', marginTop: 4, background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 11, cursor: 'pointer', padding: '2px 4px' }}>
+          {showTranslation ? '收起' : '中文'}
         </button>
       )}
-      {showTranslation && translation && (
+      {showTranslation && chinese && (
         <div style={{ marginTop: 4, padding: '8px 12px', background: 'rgba(107,127,158,0.15)', borderRadius: '0 12px 12px 12px', fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, border: '0.5px solid rgba(107,127,158,0.2)' }}>
-          {translation}
+          {chinese}
         </div>
       )}
     </div>
