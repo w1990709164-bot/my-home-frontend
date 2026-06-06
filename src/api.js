@@ -13,7 +13,10 @@ export const sendMessage = (session_id, message, model) =>
   api.post('/chat', { session_id, message, model });
 
 export const getSettings = () => api.get('/settings');
-export const updateSettings = (data) => api.patch('/settings', data);
+export const updateSettings = (data) => {
+  const { id, ...rest } = data
+  return api.patch('/settings', rest)
+}
 
 export const getMemories = () => api.get('/memories');
 
