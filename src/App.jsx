@@ -9,7 +9,52 @@ import {
 } from './api'
 
 const MODELS = ['claude-sonnet-4-5', 'claude-haiku-4-5', 'deepseek-chat']
+function MessageBubble({ message: m, style: s }) {
+  console.log('MessageBubble rendered', m.role)
+  const [translation, setTranslation] = useState('')
+  const [translating, setTranslating] = useState(false)
+  const [showTranslation, setShowTranslation] = useState(false)
 
+  async function handleTranslate() {
+    if (showTranslation) { setShowTranslation(false); return }
+    if (translation) { setShowTranslation(true); return }
+    setTranslating(true)
+    try {
+      const res = await fetch('https://my-home-backend-f0ct.onrender.com/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: 0,
+          message: `请把以下内容翻译成中文，只输出翻译结果，不要任何解释：\n${m.content}`,
+          model: 'deepseek-chat'
+        })
+      })
+      const data = await res.json()
+      setTranslation(data.reply)
+      setShowTranslation(true)
+    } catch (e) {
+      setTranslation('翻译失败')
+      setShowTranslation(true)
+    }
+    setTranslating(false)
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
+      <div style={s.bubble(m.role)}>{m.content}</div>
+      {m.role === 'assistant' && (
+        <button onClick={handleTranslate} style={{ alignSelf: 'flex-start', marginTop: 4, background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 11, cursor: 'pointer', padding: '2px 4px' }}>
+          {translating ? '翻译中…' : showTranslation ? '收起' : '翻译'}
+        </button>
+      )}
+      {showTranslation && translation && (
+        <div style={{ marginTop: 4, padding: '8px 12px', background: 'rgba(107,127,158,0.15)', borderRadius: '0 12px 12px 12px', fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, border: '0.5px solid rgba(107,127,158,0.2)' }}>
+          {translation}
+        </div>
+      )}
+    </div>
+  )
+}
 export default function App() {
   const [page, setPage] = useState('home')
   const [sessions, setSessions] = useState([])
@@ -302,12 +347,12 @@ export default function App() {
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', padding: '0 20px', marginBottom: 14 }}>对话</div>
                 <button onClick={handleNewSession} style={{ margin: '0 16px 18px', padding: '9px 14px', background: 'transparent', border: '0.5px solid rgba(255,255,255,0.15)', borderRadius: 20, fontSize: 13, color: 'rgba(255,255,255,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>＋ 新建对话</button>
                 <div style={{ flex: 1, overflowY: 'auto' }}>
-                  {sessions.map(s => (
-                    <div key={s.id} style={{ padding: '11px 20px', cursor: 'pointer', fontSize: 13, color: currentSession?.id === s.id ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)', background: currentSession?.id === s.id ? 'rgba(107,127,158,0.2)' : 'transparent', borderLeft: currentSession?.id === s.id ? '2px solid rgba(107,127,158,0.8)' : '2px solid transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} onClick={() => loadSession(s)}>
-                      <span>{s.name}</span>
-                      <button onClick={(e) => { e.stopPropagation(); handleDeleteSession(s.id) }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 14 }}>×</button>
-                    </div>
-                  ))}
+                {sessions.map(sess => (
+  <div key={sess.id} style={{ padding: '11px 20px', cursor: 'pointer', fontSize: 13, color: currentSession?.id === sess.id ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)', background: currentSession?.id === sess.id ? 'rgba(107,127,158,0.2)' : 'transparent', borderLeft: currentSession?.id === sess.id ? '2px solid rgba(107,127,158,0.8)' : '2px solid transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} onClick={() => loadSession(sess)}>
+    <span>{sess.name}</span>
+    <button onClick={(e) => { e.stopPropagation(); handleDeleteSession(sess.id) }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 14 }}>×</button>
+  </div>
+))}
                 </div>
               </div>
             </div>
@@ -322,8 +367,8 @@ export default function App() {
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
             {messages.map((m, i) => (
-              <div key={i} style={s.bubble(m.role)}>{m.content}</div>
-            ))}
+  <MessageBubble key={i} message={m} style={s} />
+))}
             {loading && <div style={{ ...s.bubble('assistant'), opacity: 0.6 }}>···</div>}
             <div ref={messagesEndRef} />
           </div>
